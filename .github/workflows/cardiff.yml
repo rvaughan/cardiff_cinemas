@@ -1,0 +1,26 @@
+name: Fetch latest data for Cardiff
+
+on:
+  repository_dispatch:
+  schedule:
+    - cron:  '0 6 * * *'
+
+jobs:
+  scheduled:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check out this repo
+      uses: actions/checkout@v4
+    - name: Fetch latest data
+      run: |-
+        mkdir -p data/cardiff && cd data/cardiff
+        NOW=$(date +%s)
+        curl 'https://europe-west2-cinema-viewer1.cloudfunctions.net/getScreenings' -o cardiff_${NOW}.json -H 'content-type: application/json' -H 'origin: https://cinemaguide.co.uk' -H 'referer: https://cinemaguide.co.uk/' -H 'user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36' --data-raw $'{"data":{"venues":["Odeon Cardiff","Showcase Cardiff Nantgarw","Cineworld Cardiff","Vue Cardiff","Everyman Cardiff"]}}'
+    - name: Commit and push data if it changed
+      run: |-
+        git config user.name "Automated"
+        git config user.email "actions@users.noreply.github.com"
+        git add -A
+        timestamp=$(date -u)
+        git commit -m "Latest data for Cardiff: ${timestamp}" || exit 0
+        git push
